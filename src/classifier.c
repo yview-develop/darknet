@@ -48,7 +48,10 @@ void train_classifier(char *datacfg, char *cfgfile, char *weightfile, int *gpus,
         if(weightfile){
             load_weights(&nets[i], weightfile);
         }
-        if(clear) *nets[i].seen = 0;
+        if (clear) {
+            *nets[i].seen = 0;
+            *nets[i].cur_iteration = 0;
+        }
         nets[i].learning_rate *= ngpus;
     }
     srand(time(0));
@@ -67,7 +70,7 @@ void train_classifier(char *datacfg, char *cfgfile, char *weightfile, int *gpus,
     char topk_buff[10];
     sprintf(topk_buff, "top%d", topk_data);
     if (classes != net.layers[net.n - 1].inputs) {
-        printf(" Error: num of filters = %d in the last conv-layer in cfg-file doesn't match to classes = %d in data-file \n",
+        printf("\n Error: num of filters = %d in the last conv-layer in cfg-file doesn't match to classes = %d in data-file \n",
             net.layers[net.n - 1].inputs, classes);
         getchar();
     }
@@ -162,8 +165,8 @@ void train_classifier(char *datacfg, char *cfgfile, char *weightfile, int *gpus,
         calc_topk_for_each = fmax(calc_topk_for_each, 100);
         if (i % 10 == 0) {
             if (calc_topk) {
-                fprintf(stderr, "\n (next TOP5 calculation at %d iterations) ", calc_topk_for_each);
-                if (topk > 0) fprintf(stderr, " Last accuracy TOP5 = %2.2f %% \n", topk * 100);
+                fprintf(stderr, "\n (next TOP%d calculation at %d iterations) ", topk_data, calc_topk_for_each);
+                if (topk > 0) fprintf(stderr, " Last accuracy TOP%d = %2.2f %% \n", topk_data, topk * 100);
             }
 
             if (net.cudnn_half) {
@@ -175,7 +178,7 @@ void train_classifier(char *datacfg, char *cfgfile, char *weightfile, int *gpus,
         int draw_precision = 0;
         if (calc_topk && (i >= calc_topk_for_each || i == net.max_batches)) {
             iter_topk = i;
-            topk = validate_classifier_single(datacfg, cfgfile, weightfile, &net, topk_data); // calc TOP5
+            topk = validate_classifier_single(datacfg, cfgfile, weightfile, &net, topk_data); // calc TOP-n
             printf("\n accuracy %s = %f \n", topk_buff, topk);
             draw_precision = 1;
         }
@@ -753,13 +756,14 @@ void try_classifier(char *datacfg, char *cfgfile, char *weightfile, char *filena
         float *predictions = network_predict(net, X);
 
         layer l = net.layers[layer_num];
-        for(int i = 0; i < l.c; ++i){
+        int i;
+        for(i = 0; i < l.c; ++i){
             if(l.rolling_mean) printf("%f %f %f\n", l.rolling_mean[i], l.rolling_variance[i], l.scales[i]);
         }
 #ifdef GPU
         cuda_pull_array(l.output_gpu, l.output, l.outputs);
 #endif
-        for(int i = 0; i < l.outputs; ++i){
+        for(i = 0; i < l.outputs; ++i){
             printf("%f\n", l.output[i]);
         }
         /*
@@ -777,7 +781,7 @@ void try_classifier(char *datacfg, char *cfgfile, char *weightfile, char *filena
 
         top_predictions(net, top, indexes);
         printf("%s: Predicted in %f seconds.\n", input, sec(clock()-time));
-        for(int i = 0; i < top; ++i){
+        for(i = 0; i < top; ++i){
             int index = indexes[i];
             printf("%s: %f\n", names[index], predictions[index]);
         }
@@ -806,7 +810,7 @@ void predict_classifier(char *datacfg, char *cfgfile, char *weightfile, char *fi
     int classes = option_find_int(options, "classes", 2);
     printf(" classes = %d, output in cfg = %d \n", classes, net.layers[net.n - 1].c);
     if (classes != net.layers[net.n - 1].inputs) {
-        printf(" Error: num of filters = %d in the last conv-layer in cfg-file doesn't match to classes = %d in data-file \n",
+        printf("\n Error: num of filters = %d in the last conv-layer in cfg-file doesn't match to classes = %d in data-file \n",
             net.layers[net.n - 1].inputs, classes);
         getchar();
     }

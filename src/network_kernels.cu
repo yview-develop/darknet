@@ -106,6 +106,16 @@ void forward_network_gpu(network net, network_state state)
             cudaStreamSynchronize(get_cuda_stream());
         state.input = l.output_gpu;
         //cudaDeviceSynchronize();
+
+        /*
+        cuda_pull_array(l.output_gpu, l.output, l.outputs);
+        cudaStreamSynchronize(get_cuda_stream());
+        float avg_val = 0;
+        int k;
+        for (k = 0; k < l.outputs; ++k) avg_val += l.output[k];
+        printf(" i: %d - avg_val = %f \n", i, avg_val / l.outputs);
+        */
+
 /*
         cuda_pull_array(l.output_gpu, l.output, l.batch*l.outputs);
         if (l.out_w >= 0 && l.out_h >= 1 && l.c >= 3) {
@@ -159,7 +169,8 @@ void backward_network_gpu(network net, network_state state)
     for(i = net.n-1; i >= 0; --i){
         state.index = i;
         layer l = net.layers[i];
-        if (l.stopbackward) break;
+        if (l.stopbackward == 1) break;
+        if (l.stopbackward > get_current_iteration(net)) break;
         if(i == 0){
             state.input = original_input;
             state.delta = original_delta;
@@ -237,8 +248,9 @@ void update_network_gpu(network net)
         layer l = net.layers[i];
         l.t = get_current_batch(net);
         if (iteration_num > (net.max_batches * 1 / 2)) l.deform = 0;
-        if(l.update_gpu){
-            l.update_gpu(l, update_batch, rate, net.momentum, net.decay);
+        if (l.burnin_update && (l.burnin_update*net.burn_in > iteration_num)) continue;
+        if(l.update_gpu && l.dont_update < iteration_num){
+            l.update_gpu(l, update_batch, rate, net.momentum, net.decay, net.loss_scale);
         }
     }
 }
@@ -308,7 +320,7 @@ float train_network_datum_gpu(network net, float *x, float *y)
     float error = get_network_cost(net);
     //if (((*net.seen) / net.batch) % net.subdivisions == 0) update_network_gpu(net);
     const int sequence = get_sequence_value(net);
-    if (((*net.seen) / net.batch) % (net.subdivisions*sequence) == 0) update_network_gpu(net);
+    //if (((*net.seen) / net.batch) % (net.subdivisions*sequence) == 0) update_network_gpu(net);
 
     return error;
 }
@@ -369,7 +381,7 @@ void update_layer(layer l, network net)
     float rate = get_current_rate(net);
     l.t = get_current_batch(net);
     if(l.update_gpu){
-        l.update_gpu(l, update_batch, rate, net.momentum, net.decay);
+        l.update_gpu(l, update_batch, rate, net.momentum, net.decay, net.loss_scale);
     }
 }
 
@@ -554,7 +566,9 @@ float train_networks(network *nets, int n, data d, int interval)
         sum += errors[i];
     }
     //cudaDeviceSynchronize();
-    if (get_current_batch(nets[0]) % interval == 0) {
+    *nets[0].cur_iteration += (n - 1);
+    if (get_current_iteration(nets[0]) % interval == 0)
+    {
         printf("Syncing... ");
         fflush(stdout);
         sync_nets(nets, n, interval);

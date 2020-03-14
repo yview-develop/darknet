@@ -8,6 +8,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+extern int check_mistakes;
+
 #define NUMCHARS 37
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -178,7 +180,6 @@ matrix load_image_augment_paths(char **paths, int n, int use_flip, int min, int 
     return X;
 }
 
-extern int check_mistakes;
 
 box_label *read_boxes(char *filename, int *n)
 {
@@ -192,7 +193,10 @@ box_label *read_boxes(char *filename, int *n)
         char *new_line = "\n";
         fwrite(new_line, sizeof(char), strlen(new_line), fw);
         fclose(fw);
-        if (check_mistakes) getchar();
+        if (check_mistakes) {
+            printf("\n Error in read_boxes() \n");
+            getchar();
+        }
 
         *n = 0;
         return boxes;
@@ -386,7 +390,7 @@ int fill_truth_detection(const char *path, int num_boxes, float *truth, int clas
             printf("\n Wrong annotation: class_id = %d. But class_id should be [from 0 to %d], file: %s \n", id, (classes-1), labelpath);
             sprintf(buff, "echo %s \"Wrong annotation: class_id = %d. But class_id should be [from 0 to %d]\" >> bad_label.list", labelpath, id, (classes-1));
             system(buff);
-            getchar();
+            if (check_mistakes) getchar();
             ++sub;
             continue;
         }
@@ -947,7 +951,10 @@ data load_data_detection(int n, char **paths, int m, int w, int h, int c, int bo
     const int random_index = random_gen();
     c = c ? c : 3;
 
-    assert(use_mixup != 2);
+    if (use_mixup == 2) {
+        printf("\n cutmix=1 - isn't supported for Detector \n");
+        exit(0);
+    }
     if (use_mixup == 3 && letter_box) {
         printf("\n Combination: letter_box=1 & mosaic=1 - isn't supported, use only 1 of these parameters \n");
         exit(0);
@@ -994,7 +1001,10 @@ data load_data_detection(int n, char **paths, int m, int w, int h, int c, int bo
             mat_cv *src;
             src = load_image_mat_cv(filename, flag);
             if (src == NULL) {
-                if (check_mistakes) getchar();
+                if (check_mistakes) {
+                    printf("\n Error in load_data_detection() - OpenCV \n");
+                    getchar();
+                }
                 continue;
             }
 
@@ -1205,7 +1215,15 @@ data load_data_detection(int n, char **paths, int m, int w, int h, int c, int bo
     if(track) random_paths = get_sequential_paths(paths, n, m, mini_batch, augment_speed);
     else random_paths = get_random_paths(paths, n, m);
 
-    assert(use_mixup < 2);
+    //assert(use_mixup < 2);
+    if (use_mixup == 2) {
+        printf("\n cutmix=1 - isn't supported for Detector \n");
+        exit(0);
+    }
+    if (use_mixup == 3) {
+        printf("\n mosaic=1 - compile Darknet with OpenCV for using mosaic=1 \n");
+        exit(0);
+    }
     int mixup = use_mixup ? random_gen() % 2 : 0;
     //printf("\n mixup = %d \n", mixup);
     if (mixup) {
