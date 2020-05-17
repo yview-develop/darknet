@@ -13,6 +13,8 @@
 #include <algorithm>
 #include <memory>
 #include <mutex>
+#include <thread>
+#include <atomic>
 #include <ctime>
 using std::cerr;
 using std::endl;
@@ -680,6 +682,64 @@ void stop_timer_and_show_name(char *name) {
 
 void show_total_time() {
     std::cout << " Total: " << total_time * 1000 << " msec" << std::endl;
+}
+
+
+int custom_create_thread(custom_thread_t * tid, const custom_attr_t * attr, void *(*func) (void *), void *arg)
+{
+    std::thread *ptr = new std::thread(func, arg);
+    *tid = (custom_thread_t *)ptr;
+    if (tid) return 0;
+    else return -1;
+}
+
+int custom_join(custom_thread_t tid, void **value_ptr)
+{
+    std::thread *ptr = (std::thread *)tid;
+    if (ptr) {
+        ptr->join();
+        delete ptr;
+        return 0;
+    }
+    else printf(" Error: ptr of thread is NULL in custom_join() \n");
+
+    return -1;
+}
+
+int custom_atomic_load_int(volatile int* obj)
+{
+    const volatile std::atomic<int>* ptr_a = (const volatile std::atomic<int>*)obj;
+    return std::atomic_load(ptr_a);
+}
+
+void custom_atomic_store_int(volatile int* obj, int desr)
+{
+    volatile std::atomic<int>* ptr_a = (volatile std::atomic<int>*)obj;
+    std::atomic_store(ptr_a, desr);
+}
+
+int get_num_threads()
+{
+    return std::thread::hardware_concurrency();
+}
+
+#if !defined(__MINGW64__)
+void this_thread_sleep_for(int ms_time)
+{
+    std::chrono::milliseconds dura(ms_time);
+    std::this_thread::sleep_for(dura);
+}
+#else
+void this_thread_sleep_for(int ms_time)
+{
+    std::cerr << " this_thread_sleep_for() isn't implemented \n";
+    return;
+}
+#endif
+
+void this_thread_yield()
+{
+    std::this_thread::yield();
 }
 
 #else // C++11
