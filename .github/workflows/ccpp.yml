@@ -87,7 +87,7 @@ jobs:
       with:
         vcpkgArguments: '@${{ env.vcpkgResponseFile }}'
         vcpkgDirectory: '${{ github.workspace }}/vcpkg'
-        vcpkgGitCommitId: '2bc6cd714f931c32d3299a137d5abe0f86f803e1'
+        vcpkgGitCommitId: '8121b4ec3d6a11353daf7639ed9082a78e617a2e'
         appendedCacheKey: ${{ hashFiles(env.vcpkgResponseFile) }}
 
     - name: 'Build with CMake and Ninja'
@@ -259,7 +259,7 @@ jobs:
       with:
         vcpkgArguments: '@${{ env.vcpkgResponseFile }}'
         vcpkgDirectory: '${{ github.workspace }}/vcpkg'
-        vcpkgGitCommitId: '2bc6cd714f931c32d3299a137d5abe0f86f803e1'
+        vcpkgGitCommitId: '8121b4ec3d6a11353daf7639ed9082a78e617a2e'
         appendedCacheKey: ${{ hashFiles(env.vcpkgResponseFile) }}
 
     - name: 'Build with CMake and Ninja'
@@ -363,7 +363,7 @@ jobs:
       with:
         vcpkgArguments: '@${{ env.vcpkgResponseFile }}'
         vcpkgDirectory: '${{ github.workspace }}/vcpkg'
-        vcpkgGitCommitId: '2bc6cd714f931c32d3299a137d5abe0f86f803e1'
+        vcpkgGitCommitId: '8121b4ec3d6a11353daf7639ed9082a78e617a2e'
         appendedCacheKey: ${{ hashFiles(env.vcpkgResponseFile) }}
 
     - name: 'Build with CMake and Ninja'
@@ -405,7 +405,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: 'Install CUDA'
       run: |
-        choco install cuda -y
+        choco install cuda --version=10.2.89.20191206 -y
         $env:ChocolateyInstall = Convert-Path "$((Get-Command choco).Path)\..\.."
         Import-Module "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
         refreshenv
@@ -424,7 +424,7 @@ jobs:
       with:
         vcpkgArguments: '@${{ env.vcpkgResponseFile }}'
         vcpkgDirectory: '${{ github.workspace }}/vcpkg'
-        vcpkgGitCommitId: '2bc6cd714f931c32d3299a137d5abe0f86f803e1'
+        vcpkgGitCommitId: '8121b4ec3d6a11353daf7639ed9082a78e617a2e'
         appendedCacheKey: ${{ hashFiles(env.vcpkgResponseFile) }}
 
     - name: 'Build with CMake and Ninja'
@@ -530,7 +530,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: 'Install CUDA'
       run: |
-        choco install cuda -y
+        choco install cuda --version=10.2.89.20191206 -y
         $env:ChocolateyInstall = Convert-Path "$((Get-Command choco).Path)\..\.."
         Import-Module "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
         refreshenv
